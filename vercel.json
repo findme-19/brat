@@ -1,15 +1,3 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/brat.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/brat",
-      "dest": "api/brat.js"
-    }
-  ]
+  "version": 2
 }
