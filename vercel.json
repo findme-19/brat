@@ -1,3 +1,8 @@
 {
-  "version": 2
+  "version": 2,
+  "functions": {
+    "api/brat.js": {
+      "includeFiles": "node_modules/canvas/build/Release/**"
+    }
+  }
 }
