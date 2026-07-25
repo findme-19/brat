@@ -29,16 +29,20 @@ function generateLowQualityImage(text) {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
-    ctx.fillStyle = 'white';
+    // Latar belakang putih
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, width, height);
 
-    ctx.fillStyle = 'black';
-    ctx.font = 'bold 30px Arial';
+    // Pengaturan font - Gunakan 'sans-serif' agar kompatibel di Linux Serverless
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 30px sans-serif';
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
 
+    // Tulis teks
     generateRandomPositionText(ctx, text, width, height);
 
+    // Efek Pixelated / Low Quality
     const tempCanvas = createCanvas(200, 200);
     const tempCtx = tempCanvas.getContext('2d');
     
@@ -48,31 +52,34 @@ function generateLowQualityImage(text) {
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(tempCanvas, 0, 0, width, height);
 
+    // Hasilkan Buffer PNG
     return canvas.toBuffer('image/png');
 }
 
 module.exports = async (req, res) => {
-    // Menggunakan WHATWG URL API standar menggantikan url.parse()
-    const host = req.headers.host || 'localhost';
-    const protocol = req.headers['x-forwarded-proto'] || 'http';
-    const currentUrl = new URL(req.url, `${protocol}://${host}`);
-    
-    // Ambil parameter 'text' dari searchParams
-    const text = currentUrl.searchParams.get('text');
-
-    if (!text) {
-        return res.status(400).send('Parameter "text" diperlukan.');
-    }
-
     try {
-        const imageBuffer = await generateLowQualityImage(text);
+        // Ambil query text secara aman
+        const host = req.headers.host || 'localhost';
+        const protocol = req.headers['x-forwarded-proto'] || 'http';
+        const currentUrl = new URL(req.url, `${protocol}://${host}`);
+        const text = currentUrl.searchParams.get('text');
+
+        if (!text) {
+            res.setHeader('Content-Type', 'text/plain');
+            return res.status(400).send('Parameter "text" diperlukan. Contoh: ?text=hello');
+        }
+
+        const imageBuffer = generateLowQualityImage(text);
         
-        res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate');
+        // Response header eksplisit
         res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Content-Length', imageBuffer.length);
+        res.setHeader('Cache-Control', 'no-store, max-age=0'); // Matikan cache saat testing
         
-        return res.send(imageBuffer);
+        return res.status(200).end(imageBuffer);
     } catch (error) {
-        console.error('Gagal membuat gambar:', error);
-        return res.status(500).send('Gagal membuat gambar.');
+        console.error('Error generator:', error);
+        res.setHeader('Content-Type', 'text/plain');
+        return res.status(500).send('Gagal membuat gambar: ' + error.message);
     }
 };
